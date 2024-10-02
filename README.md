@@ -1,4 +1,6 @@
 Tablas Principales:
+
+
 hotels: Información general del hotel (opcional si la PWA soporta múltiples hoteles).
 rooms: Información de las habitaciones (tipo, precio, disponibilidad, capacidad).
 reservations: Detalles de las reservas realizadas por los huéspedes.
@@ -8,9 +10,11 @@ Relación entre las Tablas:
 Cada reserva (reservations) está vinculada a una habitación (rooms).
 Cada huésped (guests) puede tener una o más reservas (reservations).
 Cada habitación (rooms) puede tener uno o más servicios (services).
+
+
+
 Creación de las Tablas en SQL
-sql
-Copy code
+
 -- 1. Tabla 'hotels': Información básica del hotel
 CREATE TABLE hotels (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,7 +81,11 @@ CREATE TABLE room_services (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 );
+
+
+
 Explicación de las Tablas
+
 hotels: Guarda la información básica de cada hotel. Si tienes solo un hotel en la PWA, esta tabla puede omitirse y simplemente gestionar las habitaciones y servicios.
 
 rooms: Almacena todos los detalles de las habitaciones, como tipo de habitación, precio, capacidad, descripción y la imagen.
