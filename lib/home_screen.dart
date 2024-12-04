@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import 'AllRoomsScreen.dart';
 import 'AvailableRoomsScreen.dart';
+import 'login_screen.dart';
+import 'ServicesSection.dart';
+import 'RoomsSection.dart';
+import 'AditionalServicesSection.dart';
+import 'FooterSection.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,38 +15,41 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DateTimeRange? selectedDateRange;
-  int numberOfGuests = 1;
+  DateTimeRange? selectedDateRange; // Rango de fechas seleccionado
+  int numberOfGuests = 1; // Número de huéspedes
+  Map<String, dynamic>? user; // Usuario autenticado
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Hotel PWA'),
+        title: const Text('Hotel Paraiso'),
         backgroundColor: Colors.blueGrey[900],
-        elevation: 1,
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: TextButton(
-              onPressed: () {
-                print('Reservar Ahora');
-              },
-              style: ButtonStyle(
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-                backgroundColor: MaterialStateProperty.all(Colors.orange),
-                shape: MaterialStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+          TextButton(
+            onPressed: () async {
+              final loggedInUser = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+
+              if (loggedInUser != null) {
+                setState(() {
+                  user = loggedInUser;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Bienvenido ${user!['first_name']}'),
                   ),
-                ),
-                padding: MaterialStateProperty.all(
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-              ),
-              child: const Text('Reservar Ahora'),
+                );
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
             ),
+            child: Text(user == null ? 'Iniciar Sesión' : 'Cerrar Sesión'),
           ),
         ],
       ),
@@ -62,12 +68,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   numberOfGuests = guests;
                 });
               },
+              onSearchRooms: () {
+                if (user == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Debes iniciar sesión para continuar')),
+                  );
+                  return;
+                }
+
+                if (selectedDateRange == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Por favor selecciona un rango de fechas.')),
+                  );
+                  return;
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AvailableRoomsScreen(
+                      selectedDateRange: selectedDateRange!,
+                      numberOfGuests: numberOfGuests,
+                      user: user!,
+                    ),
+                  ),
+                );
+              },
               selectedDateRange: selectedDateRange,
               numberOfGuests: numberOfGuests,
             ),
             const ServicesSection(),
+            const AdditionalServicesSection(),
             const RoomsSection(),
-            const BottomActionButtons(),
+            const FooterSection(),
           ],
         ),
       ),
@@ -78,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class HeaderSection extends StatelessWidget {
   final Function(DateTimeRange) onDateRangeSelected;
   final Function(int) onGuestsChanged;
+  final VoidCallback onSearchRooms; // Callback para el botón
   final DateTimeRange? selectedDateRange;
   final int numberOfGuests;
 
@@ -85,6 +119,7 @@ class HeaderSection extends StatelessWidget {
     super.key,
     required this.onDateRangeSelected,
     required this.onGuestsChanged,
+    required this.onSearchRooms, // Callback para el botón
     this.selectedDateRange,
     required this.numberOfGuests,
   });
@@ -120,7 +155,7 @@ class HeaderSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Bienvenido a Hotel PWA',
+                'Bienvenido a Hotel Paraiso',
                 style: TextStyle(
                   fontSize: 32,
                   color: Colors.white,
@@ -135,37 +170,21 @@ class HeaderSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16.0),
+              // Selector de Fechas
               DateSelector(
                 selectedDateRange: selectedDateRange,
                 onDateRangeSelected: onDateRangeSelected,
               ),
               const SizedBox(height: 16.0),
+              // Selector de Huéspedes
               GuestsSelector(
                 numberOfGuests: numberOfGuests,
                 onGuestsChanged: onGuestsChanged,
               ),
               const SizedBox(height: 16.0),
+              // Botón de Buscar Habitaciones
               ElevatedButton(
-                onPressed: () {
-                  if (selectedDateRange == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Por favor selecciona un rango de fechas.'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AvailableRoomsScreen(
-                        selectedDateRange: selectedDateRange!,
-                        numberOfGuests: numberOfGuests,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: onSearchRooms,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orangeAccent[700],
                   shape: RoundedRectangleBorder(
@@ -274,22 +293,17 @@ class GuestsSelector extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Cantidad de Huéspedes',
-            style: TextStyle(fontSize: 16, color: Colors.black87),
-          ),
+          const Text('Cantidad de Huéspedes', style: TextStyle(fontSize: 16, color: Colors.black87)),
           DropdownButton<int>(
             value: numberOfGuests,
             onChanged: (value) {
               if (value != null) onGuestsChanged(value);
             },
             items: List.generate(10, (index) => index + 1)
-                .map(
-                  (e) => DropdownMenuItem<int>(
-                value: e,
-                child: Text('$e'),
-              ),
-            )
+                .map((e) => DropdownMenuItem<int>(
+              value: e,
+              child: Text('$e'),
+            ))
                 .toList(),
           ),
         ],
@@ -298,233 +312,13 @@ class GuestsSelector extends StatelessWidget {
   }
 }
 
-class ServicesSection extends StatelessWidget {
-  const ServicesSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Nuestros Servicios',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16.0),
-          SizedBox(
-            height: 180,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: const [
-                ServiceCard(
-                  icon: Icons.pool,
-                  title: 'Piscina',
-                  description: 'Relájate y disfruta en nuestra piscina moderna.',
-                ),
-                ServiceCard(
-                  icon: Icons.restaurant,
-                  title: 'Restaurante',
-                  description: 'Platillos gourmet para todos los gustos.',
-                ),
-                ServiceCard(
-                  icon: Icons.spa,
-                  title: 'Spa',
-                  description: 'Experiencia de relajación total con nuestro spa.',
-                ),
-                ServiceCard(
-                  icon: Icons.local_bar,
-                  title: 'Bar',
-                  description: 'Degusta cocteles y bebidas exclusivas.',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ServiceCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const ServiceCard({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 150,
-      height: 180,
-      margin: const EdgeInsets.only(right: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8.0,
-            spreadRadius: 2.0,
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: Colors.blueGrey[900]),
-            const SizedBox(height: 12.0),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8.0),
-            Flexible(
-              child: Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RoomsSection extends StatelessWidget {
-  const RoomsSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Habitaciones Destacadas',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16.0),
-          SizedBox(
-            height: 300,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: const [
-                RoomCard(
-                  imageUrl: 'assets/images/room1.jpg',
-                  title: 'Habitación Deluxe',
-                  price: '\$120 por noche',
-                ),
-                RoomCard(
-                  imageUrl: 'assets/images/room2.jpg',
-                  title: 'Suite con Vista al Mar',
-                  price: '\$200 por noche',
-                ),
-                RoomCard(
-                  imageUrl: 'assets/images/room3.jpg',
-                  title: 'Habitación Familiar',
-                  price: '\$150 por noche',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class RoomCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String price;
-
-  const RoomCard({
-    super.key,
-    required this.imageUrl,
-    required this.title,
-    required this.price,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 250,
-      margin: const EdgeInsets.only(right: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8.0,
-            spreadRadius: 2.0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
-            child: Image.asset(
-              imageUrl,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                Text(
-                  price,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.deepOrangeAccent[400],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class BottomActionButtons extends StatelessWidget {
-  const BottomActionButtons({super.key});
+  final VoidCallback onSearchRooms;
+
+  const BottomActionButtons({
+    super.key,
+    required this.onSearchRooms,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -534,39 +328,17 @@ class BottomActionButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton(
-            onPressed: () {
-              print('Contáctenos');
-            },
+            onPressed: onSearchRooms,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              backgroundColor: Colors.orange,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Contáctenos'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AllRoomsScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Ver Habitaciones'),
+            child: const Text('Buscar Habitaciones'),
           ),
         ],
       ),
     );
   }
 }
-
