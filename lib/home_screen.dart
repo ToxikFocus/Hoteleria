@@ -1,8 +1,12 @@
-// Archivo: home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'AllRoomsScreen.dart';
+import 'AvailableRoomsScreen.dart';
+
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -16,8 +20,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text('Hotel PWA'),
-        backgroundColor: Colors.blueGrey[900], // Cambiamos a un azul gris oscuro
+        title: const Text('Hotel PWA'),
+        backgroundColor: Colors.blueGrey[900],
         elevation: 1,
         actions: [
           Padding(
@@ -28,14 +32,17 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               style: ButtonStyle(
                 foregroundColor: MaterialStateProperty.all(Colors.white),
-                backgroundColor: MaterialStateProperty.all(Colors.deepOrangeAccent[400]),
+                backgroundColor: MaterialStateProperty.all(Colors.orange),
                 shape: MaterialStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
+                padding: MaterialStateProperty.all(
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
               ),
-              child: Text('Reservar Ahora'),
+              child: const Text('Reservar Ahora'),
             ),
           ),
         ],
@@ -58,9 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedDateRange: selectedDateRange,
               numberOfGuests: numberOfGuests,
             ),
-            ServicesSection(),
-            RoomsSection(),
-            BottomActionButtons(),
+            const ServicesSection(),
+            const RoomsSection(),
+            const BottomActionButtons(),
           ],
         ),
       ),
@@ -74,7 +81,8 @@ class HeaderSection extends StatelessWidget {
   final DateTimeRange? selectedDateRange;
   final int numberOfGuests;
 
-  HeaderSection({
+  const HeaderSection({
+    super.key,
     required this.onDateRangeSelected,
     required this.onGuestsChanged,
     this.selectedDateRange,
@@ -87,9 +95,9 @@ class HeaderSection extends StatelessWidget {
       children: [
         Container(
           height: 350,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/hotel_banner.jpg'), // Imagen local
+              image: AssetImage('assets/images/hotel_banner.jpg'),
               fit: BoxFit.cover,
             ),
           ),
@@ -111,7 +119,7 @@ class HeaderSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Bienvenido a Hotel PWA',
                 style: TextStyle(
                   fontSize: 32,
@@ -119,33 +127,44 @@ class HeaderSection extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
+              const Text(
                 'Busca disponibilidad basada en fechas y número de huéspedes',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white70,
                 ),
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               DateSelector(
                 selectedDateRange: selectedDateRange,
                 onDateRangeSelected: onDateRangeSelected,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               GuestsSelector(
                 numberOfGuests: numberOfGuests,
                 onGuestsChanged: onGuestsChanged,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: () {
                   if (selectedDateRange == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Por favor selecciona un rango de fechas.')),
+                      const SnackBar(
+                        content: Text('Por favor selecciona un rango de fechas.'),
+                      ),
                     );
                     return;
                   }
-                  print('Buscando habitaciones disponibles para $numberOfGuests personas del ${DateFormat('dd/MM/yyyy').format(selectedDateRange!.start)} al ${DateFormat('dd/MM/yyyy').format(selectedDateRange!.end)}');
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AvailableRoomsScreen(
+                        selectedDateRange: selectedDateRange!,
+                        numberOfGuests: numberOfGuests,
+                      ),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orangeAccent[700],
@@ -153,7 +172,7 @@ class HeaderSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text('Buscar Habitaciones Disponibles'),
+                child: const Text('Buscar Habitaciones Disponibles'),
               ),
             ],
           ),
@@ -163,12 +182,12 @@ class HeaderSection extends StatelessWidget {
   }
 }
 
-// Widget para el selector de fechas
 class DateSelector extends StatelessWidget {
   final DateTimeRange? selectedDateRange;
   final Function(DateTimeRange) onDateRangeSelected;
 
-  DateSelector({
+  const DateSelector({
+    super.key,
     required this.selectedDateRange,
     required this.onDateRangeSelected,
   });
@@ -180,7 +199,7 @@ class DateSelector extends StatelessWidget {
         DateTimeRange? range = await showDateRangePicker(
           context: context,
           firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(Duration(days: 365)),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
           builder: (context, child) {
             return Theme(
               data: ThemeData.light().copyWith(
@@ -197,11 +216,11 @@ class DateSelector extends StatelessWidget {
         }
       },
       child: Container(
-        padding: EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8.0),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 6.0,
@@ -213,12 +232,12 @@ class DateSelector extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(Icons.calendar_today, color: Colors.blueGrey[900]),
-            SizedBox(width: 8.0),
+            const SizedBox(width: 8.0),
             Text(
               selectedDateRange == null
                   ? 'Seleccionar Fechas'
                   : 'Desde: ${DateFormat('dd/MM/yyyy').format(selectedDateRange!.start)} - Hasta: ${DateFormat('dd/MM/yyyy').format(selectedDateRange!.end)}',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
           ],
         ),
@@ -231,7 +250,8 @@ class GuestsSelector extends StatelessWidget {
   final int numberOfGuests;
   final Function(int) onGuestsChanged;
 
-  GuestsSelector({
+  const GuestsSelector({
+    super.key,
     required this.numberOfGuests,
     required this.onGuestsChanged,
   });
@@ -239,11 +259,11 @@ class GuestsSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6.0,
@@ -254,17 +274,22 @@ class GuestsSelector extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Cantidad de Huéspedes', style: TextStyle(fontSize: 16, color: Colors.black87)),
+          const Text(
+            'Cantidad de Huéspedes',
+            style: TextStyle(fontSize: 16, color: Colors.black87),
+          ),
           DropdownButton<int>(
             value: numberOfGuests,
             onChanged: (value) {
               if (value != null) onGuestsChanged(value);
             },
             items: List.generate(10, (index) => index + 1)
-                .map((e) => DropdownMenuItem<int>(
-              value: e,
-              child: Text('$e'),
-            ))
+                .map(
+                  (e) => DropdownMenuItem<int>(
+                value: e,
+                child: Text('$e'),
+              ),
+            )
                 .toList(),
           ),
         ],
@@ -274,6 +299,8 @@ class GuestsSelector extends StatelessWidget {
 }
 
 class ServicesSection extends StatelessWidget {
+  const ServicesSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -281,16 +308,16 @@ class ServicesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Nuestros Servicios',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           SizedBox(
             height: 180,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: [
+              children: const [
                 ServiceCard(
                   icon: Icons.pool,
                   title: 'Piscina',
@@ -320,13 +347,13 @@ class ServicesSection extends StatelessWidget {
   }
 }
 
-// Widget individual para cada tarjeta de servicio
 class ServiceCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
 
   const ServiceCard({
+    super.key,
     required this.icon,
     required this.title,
     required this.description,
@@ -337,11 +364,11 @@ class ServiceCard extends StatelessWidget {
     return Container(
       width: 150,
       height: 180,
-      margin: EdgeInsets.only(right: 16.0),
+      margin: const EdgeInsets.only(right: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 8.0,
@@ -350,19 +377,28 @@ class ServiceCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 40, color: Colors.blueGrey[900]),
-            SizedBox(height: 12.0),
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8.0),
+            const SizedBox(height: 12.0),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8.0),
             Flexible(
               child: Text(
                 description,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.black54,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -375,6 +411,8 @@ class ServiceCard extends StatelessWidget {
 }
 
 class RoomsSection extends StatelessWidget {
+  const RoomsSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -382,16 +420,16 @@ class RoomsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Habitaciones Destacadas',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           SizedBox(
             height: 300,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: [
+              children: const [
                 RoomCard(
                   imageUrl: 'assets/images/room1.jpg',
                   title: 'Habitación Deluxe',
@@ -422,6 +460,7 @@ class RoomCard extends StatelessWidget {
   final String price;
 
   const RoomCard({
+    super.key,
     required this.imageUrl,
     required this.title,
     required this.price,
@@ -431,11 +470,11 @@ class RoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 250,
-      margin: EdgeInsets.only(right: 16.0),
+      margin: const EdgeInsets.only(right: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 8.0,
@@ -447,7 +486,7 @@ class RoomCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12.0)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
             child: Image.asset(
               imageUrl,
               height: 180,
@@ -462,12 +501,18 @@ class RoomCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                SizedBox(height: 8.0),
+                const SizedBox(height: 8.0),
                 Text(
                   price,
-                  style: TextStyle(fontSize: 16, color: Colors.deepOrangeAccent[400]),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.deepOrangeAccent[400],
+                  ),
                 ),
               ],
             ),
@@ -479,6 +524,8 @@ class RoomCard extends StatelessWidget {
 }
 
 class BottomActionButtons extends StatelessWidget {
+  const BottomActionButtons({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -491,27 +538,35 @@ class BottomActionButtons extends StatelessWidget {
               print('Contáctenos');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueGrey[900],
+              backgroundColor: Colors.blue,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text('Contáctenos'),
+            child: const Text('Contáctenos'),
           ),
           ElevatedButton(
             onPressed: () {
-              print('Ver Todas las Habitaciones');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AllRoomsScreen(),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orangeAccent[700],
+              backgroundColor: Colors.deepOrange,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text('Ver Habitaciones'),
+            child: const Text('Ver Habitaciones'),
           ),
         ],
       ),
     );
   }
 }
+

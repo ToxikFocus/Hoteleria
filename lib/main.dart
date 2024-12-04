@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart'; // Asegúrate de que este archivo exista y esté en la misma carpeta
 
 void main() {
-  runApp(HotelApp());
+  runApp(const HotelApp());
 }
 
 class HotelApp extends StatelessWidget {
+  const HotelApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -15,7 +17,7 @@ class HotelApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomeScreen(),
+      home: const HomeScreen(),
     );
   }
 }

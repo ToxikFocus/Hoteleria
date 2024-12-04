@@ -1,99 +1,105 @@
-Tablas Principales:
+-- Creación de la base de datos
+CREATE DATABASE hoteleria;
+USE hoteleria;
 
-
-hotels: Información general del hotel (opcional si la PWA soporta múltiples hoteles).
-rooms: Información de las habitaciones (tipo, precio, disponibilidad, capacidad).
-reservations: Detalles de las reservas realizadas por los huéspedes.
-guests: Información de los huéspedes que realizan las reservas.
-services: Servicios que ofrece el hotel (piscina, spa, restaurante, etc.).
-Relación entre las Tablas:
-Cada reserva (reservations) está vinculada a una habitación (rooms).
-Cada huésped (guests) puede tener una o más reservas (reservations).
-Cada habitación (rooms) puede tener uno o más servicios (services).
-
-
-
-Creación de las Tablas en SQL
-
--- 1. Tabla 'hotels': Información básica del hotel
+-- Tabla 'hotels'
 CREATE TABLE hotels (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address VARCHAR(255),
-    phone VARCHAR(50),
-    email VARCHAR(100),
-    description TEXT
+id INT PRIMARY KEY AUTO_INCREMENT,
+name VARCHAR(100) NOT NULL,
+address VARCHAR(255),
+phone VARCHAR(20),
+email VARCHAR(100),
+description TEXT
 );
 
--- 2. Tabla 'rooms': Información de las habitaciones
+-- Tabla 'rooms'
 CREATE TABLE rooms (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    hotel_id INT,
-    room_type VARCHAR(50), -- Tipo de habitación (Suite, Doble, Familiar, etc.)
-    price DECIMAL(10, 2),  -- Precio por noche
-    capacity INT,          -- Capacidad máxima de personas
-    description TEXT,      -- Descripción de la habitación
-    image_url VARCHAR(255),-- URL de la imagen de la habitación
-    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+id INT PRIMARY KEY AUTO_INCREMENT,
+hotel_id INT,
+room_type VARCHAR(50) NOT NULL,
+price DECIMAL(10, 2) NOT NULL,
+capacity INT NOT NULL,
+description TEXT,
+image_url VARCHAR(255),
+FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
 );
 
--- 3. Tabla 'guests': Información de los huéspedes
+-- Tabla 'guests'
 CREATE TABLE guests (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    phone VARCHAR(50),
-    address VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+id INT PRIMARY KEY AUTO_INCREMENT,
+first_name VARCHAR(50) NOT NULL,
+last_name VARCHAR(50) NOT NULL,
+email VARCHAR(100),
+phone VARCHAR(20),
+address VARCHAR(255)
 );
 
--- 4. Tabla 'reservations': Detalles de las reservas
+-- Tabla 'reservations'
 CREATE TABLE reservations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    guest_id INT,
-    room_id INT,
-    check_in_date DATE,     -- Fecha de entrada
-    check_out_date DATE,    -- Fecha de salida
-    number_of_guests INT,   -- Cantidad de huéspedes
-    total_price DECIMAL(10, 2), -- Precio total de la estancia
-    status VARCHAR(50),     -- Estado de la reserva (Pendiente, Confirmada, Cancelada)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE CASCADE,
-    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+id INT PRIMARY KEY AUTO_INCREMENT,
+guest_id INT,
+room_id INT,
+check_in_date DATE NOT NULL,
+check_out_date DATE NOT NULL,
+number_of_guests INT NOT NULL,
+total_price DECIMAL(10, 2) NOT NULL,
+status ENUM('Confirmada', 'Pendiente', 'Cancelada') DEFAULT 'Pendiente',
+FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE CASCADE,
+FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
--- 5. Tabla 'services': Información de los servicios disponibles en el hotel
+-- Tabla 'services'
 CREATE TABLE services (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    hotel_id INT,
-    name VARCHAR(100),  -- Nombre del servicio (Piscina, Restaurante, etc.)
-    description TEXT,   -- Descripción del servicio
-    price DECIMAL(10, 2), -- Precio del servicio (si aplica)
-    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+id INT PRIMARY KEY AUTO_INCREMENT,
+hotel_id INT,
+name VARCHAR(50) NOT NULL,
+description TEXT,
+price DECIMAL(10, 2) NOT NULL,
+FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
 );
 
--- 6. Tabla intermedia 'room_services': Relación entre habitaciones y servicios ofrecidos
+-- Tabla 'room_services'
 CREATE TABLE room_services (
-    room_id INT,
-    service_id INT,
-    PRIMARY KEY (room_id, service_id),
-    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+id INT PRIMARY KEY AUTO_INCREMENT,
+room_id INT,
+service_id INT,
+FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 );
 
+-- Insertar datos en la tabla 'hotels'
+INSERT INTO hotels (name, address, phone, email, description) VALUES
+('Hotel Paraíso', 'Av. Playa 123, Ciudad Sol', '123-456-7890', 'contacto@hotelparaiso.com', 'Un lugar perfecto para relajarse y disfrutar.'),
+('Montaña Resort', 'Calle Bosque 456, Ciudad Montaña', '987-654-3210', 'reservas@montanaresort.com', 'Ideal para unas vacaciones en la naturaleza.');
 
+-- Insertar datos en la tabla 'rooms'
+INSERT INTO rooms (hotel_id, room_type, price, capacity, description, image_url) VALUES
+(1, 'Suite', 150.00, 4, 'Suite de lujo con vista al mar y terraza privada.', 'https://example.com/suite1.jpg'),
+(1, 'Doble', 100.00, 2, 'Habitación doble con vista a la ciudad.', 'https://example.com/double1.jpg'),
+(2, 'Familiar', 120.00, 5, 'Habitación familiar con dos camas dobles y sofá cama.', 'https://example.com/family1.jpg'),
+(2, 'Individual', 80.00, 1, 'Habitación individual ideal para una persona.', 'https://example.com/single1.jpg');
 
-Explicación de las Tablas
+-- Insertar datos en la tabla 'guests'
+INSERT INTO guests (first_name, last_name, email, phone, address) VALUES
+('Carlos', 'Martínez', 'carlos.martinez@example.com', '555-1234', 'Calle Principal 789, Ciudad Sol'),
+('Ana', 'Gómez', 'ana.gomez@example.com', '555-5678', 'Avenida Central 456, Ciudad Montaña');
 
-hotels: Guarda la información básica de cada hotel. Si tienes solo un hotel en la PWA, esta tabla puede omitirse y simplemente gestionar las habitaciones y servicios.
+-- Insertar datos en la tabla 'reservations'
+INSERT INTO reservations (guest_id, room_id, check_in_date, check_out_date, number_of_guests, total_price, status) VALUES
+(1, 1, '2024-12-01', '2024-12-05', 2, 600.00, 'Confirmada'),
+(2, 3, '2024-12-10', '2024-12-15', 4, 600.00, 'Pendiente');
 
-rooms: Almacena todos los detalles de las habitaciones, como tipo de habitación, precio, capacidad, descripción y la imagen.
+-- Insertar datos en la tabla 'services'
+INSERT INTO services (hotel_id, name, description, price) VALUES
+(1, 'Spa', 'Acceso al spa con masajes relajantes.', 50.00),
+(1, 'Gimnasio', 'Acceso al gimnasio del hotel.', 0.00),
+(2, 'Piscina', 'Acceso a la piscina climatizada.', 30.00),
+(2, 'Desayuno', 'Desayuno buffet incluido.', 15.00);
 
-guests: Contiene información personal de los huéspedes que han hecho una reserva. Se utiliza para gestionar las reservas y enviar información de confirmación.
-
-reservations: Registra las reservas realizadas por los huéspedes, indicando la habitación reservada, la fecha de entrada y salida, el número de huéspedes y el precio total de la estancia.
-
-services: Lista de todos los servicios ofrecidos por el hotel (por ejemplo, piscina, spa, bar).
-
-room_services: Tabla intermedia que vincula habitaciones con servicios, indicando qué servicios están asociados a cada tipo de habitación.
+-- Insertar datos en la tabla 'room_services' para asignar servicios a las habitaciones
+INSERT INTO room_services (room_id, service_id) VALUES
+(1, 1),  -- La Suite del Hotel Paraíso incluye el servicio de Spa
+(1, 2),  -- La Suite del Hotel Paraíso incluye el acceso al Gimnasio
+(2, 2),  -- La habitación Doble del Hotel Paraíso incluye el acceso al Gimnasio
+(3, 3),  -- La habitación Familiar del Montaña Resort incluye acceso a la Piscina
+(4, 4);  -- La habitación Individual del Montaña Resort incluye Desayuno
