@@ -5,13 +5,13 @@ import 'package:http/http.dart' as http;
 class AvailableRoomsScreen extends StatefulWidget {
   final DateTimeRange selectedDateRange;
   final int numberOfGuests;
-  final Map<String, dynamic> user; // Información del usuario autenticado
+  final Map<String, dynamic> user;
 
   const AvailableRoomsScreen({
     super.key,
     required this.selectedDateRange,
     required this.numberOfGuests,
-    required this.user, // Recibir al usuario como parámetro
+    required this.user,
   });
 
   @override
@@ -19,181 +19,138 @@ class AvailableRoomsScreen extends StatefulWidget {
 }
 
 class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
-  late Future<List<Map<String, dynamic>>> _availableRooms;
+  List<Map<String, dynamic>> availableRooms = [];
 
   @override
   void initState() {
     super.initState();
-    _availableRooms = fetchAvailableRooms();
+    _fetchAvailableRooms();
   }
 
-  Future<List<Map<String, dynamic>>> fetchAvailableRooms() async {
-    final String apiUrl = "http://127.0.0.1/Hoteleria/search_rooms.php";
+  Future<void> _fetchAvailableRooms() async {
+    final url = Uri.parse(
+        'http://127.0.0.1/Hoteleria/search_rooms.php?guests=${widget.numberOfGuests}&check_in=${widget.selectedDateRange.start.toIso8601String()}&check_out=${widget.selectedDateRange.end.toIso8601String()}');
 
-    final response = await http.get(
-      Uri.parse(
-        "$apiUrl?guests=${widget.numberOfGuests}&check_in=${widget.selectedDateRange.start.toIso8601String().split('T')[0]}&check_out=${widget.selectedDateRange.end.toIso8601String().split('T')[0]}",
-      ),
-    );
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Error al cargar habitaciones disponibles');
+      if (response.statusCode == 200) {
+        setState(() {
+          availableRooms = List<Map<String, dynamic>>.from(json.decode(response.body));
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar las habitaciones: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al conectarse al servidor: $e')),
+      );
     }
   }
 
-  Future<void> makeReservation({
-    required int guestId,
-    required int roomId,
-    required String checkIn,
-    required String checkOut,
-    required int numberOfGuests,
-    required double totalPrice,
-  }) async {
-    final String apiUrl = "http://<tu-direccion-ip>/Hoteleria/make_reservation.php";
+  Future<void> _reserveRoom(Map<String, dynamic> room) async {
+    final url = Uri.parse('http://127.0.0.1/Hoteleria/reserve_room.php');
 
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      body: {
-        'guest_id': guestId.toString(),
-        'room_id': roomId.toString(),
-        'check_in': checkIn,
-        'check_out': checkOut,
-        'number_of_guests': numberOfGuests.toString(),
-        'total_price': totalPrice.toString(),
-      },
-    );
+    final body = json.encode({
+      'guest_id': widget.user['id'],
+      'room_id': room['id'],
+      'check_in_date': widget.selectedDateRange.start.toIso8601String(),
+      'check_out_date': widget.selectedDateRange.end.toIso8601String(),
+      'number_of_guests': widget.numberOfGuests,
+    });
 
-    final data = json.decode(response.body);
-    if (data['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'])),
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
       );
-    } else {
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reserva realizada exitosamente')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al reservar: ${response.body}')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'])),
+        SnackBar(content: Text('Error al conectarse al servidor: $e')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final imageMapping = {
-      'Suite': 'assets/images/room1.jpg',
-      'Doble': 'assets/images/room2.jpg',
-      'Familiar': 'assets/images/room3.jpg',
-      'Individual': 'assets/images/room2.jpg',
-    };
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Habitaciones Disponibles'),
         backgroundColor: Colors.blueGrey[900],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _availableRooms,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.data == null || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No hay habitaciones disponibles para estos criterios.',
-                style: TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            );
-          } else {
-            final rooms = snapshot.data!;
-            return ListView.builder(
-              itemCount: rooms.length,
-              itemBuilder: (context, index) {
-                final room = rooms[index];
-                final imageUrl = imageMapping[room['room_type']] ??
-                    'assets/images/hotel_banner.jpg';
+      body: availableRooms.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        itemCount: availableRooms.length,
+        itemBuilder: (context, index) {
+          final room = availableRooms[index];
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 10.0, horizontal: 16.0),
+          // Configurar las imágenes locales según el tipo de habitación
+          final Map<String, String> localImages = {
+            'Suite': 'assets/images/room1.jpg',
+            'Doble': 'assets/images/room2.jpg',
+            'Familiar': 'assets/images/room3.jpg',
+            'Individual': 'assets/images/room4.png',
+          };
+
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Usar imágenes locales
+                Image.asset(
+                  localImages[room['room_type']] ?? 'assets/images/room1.jpg',
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(8.0)),
-                            child: Image.asset(
-                              imageUrl,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    room['room_type'],
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  Text(
-                                    '\$${room['price']} por noche',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.deepOrangeAccent[400],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        room['room_type'],
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      Text(
+                        '\$${room['price']} por noche',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.deepOrange,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       ElevatedButton(
-                        onPressed: () {
-                          final totalPrice = double.parse(room['price']) *
-                              widget.selectedDateRange.duration.inDays;
-
-                          // Verifica que el usuario esté autenticado antes de proceder
-                          if (widget.user['id'] != null) {
-                            makeReservation(
-                              guestId: widget.user['id'], // Usa el ID del usuario autenticado
-                              roomId: room['id'],
-                              checkIn: widget.selectedDateRange.start.toIso8601String().split('T')[0],
-                              checkOut: widget.selectedDateRange.end.toIso8601String().split('T')[0],
-                              numberOfGuests: widget.numberOfGuests,
-                              totalPrice: totalPrice,
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Error: Usuario no autenticado')),
-                            );
-                          }
-                        },
+                        onPressed: () => _reserveRoom(room),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          backgroundColor: Colors.orangeAccent,
                         ),
                         child: const Text('Reservar'),
                       ),
                     ],
                   ),
-                );
-              },
-            );
-          }
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
