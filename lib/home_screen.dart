@@ -6,6 +6,7 @@ import 'ServicesSection.dart';
 import 'RoomsSection.dart';
 import 'AditionalServicesSection.dart';
 import 'FooterSection.dart';
+import 'RegisterScreen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Hotel Paraiso'),
-        backgroundColor: Colors.blueGrey[900],
+        backgroundColor: Colors.grey,
         actions: [
           TextButton(
             onPressed: () async {
@@ -50,6 +51,18 @@ class _HomeScreenState extends State<HomeScreen> {
               foregroundColor: Colors.white,
             ),
             child: Text(user == null ? 'Iniciar Sesión' : 'Cerrar Sesión'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RegisterScreen()),
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Registrarse'),
           ),
         ],
       ),
