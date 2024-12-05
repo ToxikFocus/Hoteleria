@@ -20,6 +20,7 @@ class AvailableRoomsScreen extends StatefulWidget {
 
 class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
   List<Map<String, dynamic>> availableRooms = [];
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
 
   Future<void> _fetchAvailableRooms() async {
     final url = Uri.parse(
-        'http://127.0.0.1/Hoteleria/search_rooms.php?guests=${widget.numberOfGuests}&check_in=${widget.selectedDateRange.start.toIso8601String()}&check_out=${widget.selectedDateRange.end.toIso8601String()}');
+        'http://api.sysprosb.com/search_rooms.php?guests=${widget.numberOfGuests}&check_in=${widget.selectedDateRange.start.toIso8601String()}&check_out=${widget.selectedDateRange.end.toIso8601String()}');
 
     try {
       final response = await http.get(url);
@@ -51,7 +52,7 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
   }
 
   Future<void> _reserveRoom(Map<String, dynamic> room) async {
-    final url = Uri.parse('http://127.0.0.1/Hoteleria/reserve_room.php');
+    final url = Uri.parse('http://api.sysprosb.com/reserve_room.php');
 
     final body = json.encode({
       'guest_id': widget.user['id'],
@@ -59,6 +60,10 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
       'check_in_date': widget.selectedDateRange.start.toIso8601String(),
       'check_out_date': widget.selectedDateRange.end.toIso8601String(),
       'number_of_guests': widget.numberOfGuests,
+    });
+
+    setState(() {
+      isLoading = true;
     });
 
     try {
@@ -72,6 +77,11 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Reserva realizada exitosamente')),
         );
+
+        // Redirigir a la página principal
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.popUntil(context, (route) => route.isFirst);
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al reservar: ${response.body}')),
@@ -81,8 +91,13 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al conectarse al servidor: $e')),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -91,67 +106,78 @@ class _AvailableRoomsScreenState extends State<AvailableRoomsScreen> {
         title: const Text('Habitaciones Disponibles'),
         backgroundColor: Colors.blueGrey[900],
       ),
-      body: availableRooms.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        itemCount: availableRooms.length,
-        itemBuilder: (context, index) {
-          final room = availableRooms[index];
+      body: Stack(
+        children: [
+          availableRooms.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+            itemCount: availableRooms.length,
+            itemBuilder: (context, index) {
+              final room = availableRooms[index];
 
-          // Configurar las imágenes locales según el tipo de habitación
-          final Map<String, String> localImages = {
-            'Suite': 'assets/images/room1.jpg',
-            'Doble': 'assets/images/room2.jpg',
-            'Familiar': 'assets/images/room3.jpg',
-            'Individual': 'assets/images/room4.png',
-          };
+              // Configurar las imágenes locales según el tipo de habitación
+              final Map<String, String> localImages = {
+                'Suite': 'assets/images/room1.jpg',
+                'Doble': 'assets/images/room2.jpg',
+                'Familiar': 'assets/images/room3.jpg',
+                'Individual': 'assets/images/room4.png',
+              };
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Usar imágenes locales
-                Image.asset(
-                  localImages[room['room_type']] ?? 'assets/images/room1.jpg',
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Usar imágenes locales
+                    Image.asset(
+                      localImages[room['room_type']] ?? 'assets/images/room1.jpg',
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            room['room_type'],
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '\$${room['price']} por noche',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => _reserveRoom(room),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orangeAccent,
+                            ),
+                            child: const Text('Reservar'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        room['room_type'],
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '\$${room['price']} por noche',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.deepOrange,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () => _reserveRoom(room),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orangeAccent,
-                        ),
-                        child: const Text('Reservar'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              );
+            },
+          ),
+          if (isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
             ),
-          );
-        },
+        ],
       ),
     );
   }

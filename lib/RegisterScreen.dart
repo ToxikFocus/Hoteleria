@@ -21,7 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = true;
       });
 
-      final url = Uri.parse('http://localhost/hoteleria/register_user.php'); // Cambia la URL según tu servidor
+      final url = Uri.parse('http://api.sysprosb.com/register_user.php'); // Cambia la URL según tu servidor
       try {
         final response = await http.post(
           url,
